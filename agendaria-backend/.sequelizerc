@@ -1,0 +1,8 @@
+const path = require('path');
+
+module.exports = {
+  'config': path.resolve(__dirname, 'src/config/database.js'), // Aponta para sua configuração de DB
+  'models-path': path.resolve(__dirname, 'src/models'),       // Aponta para sua pasta de modelos
+  'migrations-path': path.resolve(__dirname, 'migrations'),   // Migrações ficam na raiz (ou pode mover para src/database/migrations)
+  'seeders-path': path.resolve(__dirname, 'seeders')         // Seeders ficam na raiz (ou pode mover para src/database/seeders)
+};
