@@ -31,6 +31,18 @@ module.exports = (sequelize, DataTypes) => {
     google_calendar_id: {
       type: DataTypes.STRING,
       allowNull: true,
+    },
+    google_access_token: { // Novo campo
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    google_refresh_token: { // Novo campo
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    google_token_expiry_date: { // Novo campo
+      type: DataTypes.DATE,
+      allowNull: true,
     }
   }, {
     tableName: 'Users',

@@ -11,6 +11,9 @@ const employeeAvailabilityRoutes = require('./src/routes/employeeAvailabilityRou
 const scheduleRoutes = require('./src/routes/scheduleRoutes'); // Importa as novas rotas
 const authenticatePlugin = require('./src/plugins/authenticate');
 const authorizePlugin = require('./src/plugins/authorize');
+const googleCalendarRoutes = require('./src/routes/googleCalendarRoutes'); // Importa as novas rotas
+const authenticatePlugin = require('./src/plugins/authenticate');
+const authorizePlugin = require('./src/plugins/authorize');
 
 const PORT = process.env.PORT || 3000;
 
@@ -25,7 +28,7 @@ fastify.after(() => {
   fastify.register(employeeServiceRoutes, { prefix: '/api' });
   fastify.register(employeeAvailabilityRoutes, { prefix: '/api' });
   fastify.register(scheduleRoutes, { prefix: '/api' }); // Registra as rotas de Schedule
-
+  fastify.register(googleCalendarRoutes, { prefix: '/api' });
   // ... (manter as rotas de teste se desejar)
 });
 

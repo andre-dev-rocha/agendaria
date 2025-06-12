@@ -6,6 +6,7 @@ const User = db.User;
 const Service = db.Service;
 const EmployeeAvailability = db.EmployeeAvailability;
 const EmployeeService = db.EmployeeService; // Para verificar se o funcionário oferece o serviço
+const googleCalendarService = require('./googleCalendarService');
 
 class ScheduleService {
   /**
@@ -259,7 +260,28 @@ class ScheduleService {
     });
 
     // TODO: Notificação para funcionário sobre novo agendamento
-    // TODO: Integração com Google Calendar aqui (próxima etapa)
+  try {
+    const clientUser = await User.findByPk(clientId); // Para pegar o email do cliente
+    const employeeUser = await User.findByPk(employeeId); // Para pegar o email do funcionário e tokens
+
+    if (employeeUser && employeeUser.google_refresh_token) { // Só cria se o funcionário conectou o GC
+      const googleEventId = await googleCalendarService.createCalendarEvent(employeeId, {
+        summary: `${service.name} com ${clientUser.name}`,
+        description: `Serviço: ${service.name}\nCliente: <span class="math-inline">\{clientUser\.name\} \(</span>{clientUser.email})\nNotas: ${notes || 'Nenhuma'}`,
+        start_time: apptStartTime.toISOString(), // ISO 8601
+        end_time: apptEndTime.toISOString(),   // ISO 8601
+        // guests: [{ email: clientUser.email }] // Adicionar o cliente como convidado (opcional)
+      });
+
+      // Salva o ID do evento do Google Calendar no agendamento para futuras atualizações/deletes
+      await schedule.update({ google_calendar_event_id: googleEventId });
+    }
+  } catch (gcError) {
+    console.error('Error creating Google Calendar event:', gcError.message);
+    // Opcional: Lidar com o erro de forma mais sofisticada, talvez registrar,
+    // ou notificar o funcionário que a sincronização falhou.
+    // O agendamento na sua DB ainda será criado.
+  }
 
     return schedule.toJSON();
   }
@@ -408,6 +430,39 @@ class ScheduleService {
     }
 
     await schedule.update({ status: newStatus });
+
+  // **INTEGRAÇÃO COM GOOGLE CALENDAR (NOVO)**
+  try {
+    const employeeUser = await User.findByPk(schedule.employee_id);
+    const service = await Service.findByPk(schedule.service_id);
+    const clientUser = await User.findByPk(schedule.client_id);
+
+    if (employeeUser && employeeUser.google_refresh_token && schedule.google_calendar_event_id) {
+      if (newStatus === 'canceled' || newStatus === 'completed') {
+        // Se o agendamento foi cancelado ou completado, deleta ou marca como busy no Google Calendar
+        await googleCalendarService.deleteCalendarEvent(employeeUser.id, schedule.google_calendar_event_id);
+        // Opcional: Você pode querer apenas ATUALIZAR o evento no GC com um status 'Canceled'
+        // Em vez de deletar, atualizaria o título ou a descrição para indicar o cancelamento.
+        // Isso depende da preferência. Deletar é mais limpo.
+      } else {
+        // Se o status mudou para 'confirmed' (de 'pending'), ou outro update que não seja cancel/complete
+        // atualiza o evento. Por exemplo, se adicionamos notas, etc.
+        // Para simplicidade, vamos atualizar para 'confirmed' ou outras mudanças nos detalhes.
+        // Se o status já era 'confirmed' e agora mudou, por exemplo, de 'pending' para 'confirmed'
+        if (oldStatus === 'pending' && newStatus === 'confirmed') {
+            await googleCalendarService.updateCalendarEvent(employeeUser.id, schedule.google_calendar_event_id, {
+                summary: `${service.name} (Confirmado) com ${clientUser.name}`,
+                description: `Serviço: ${service.name}\nCliente: <span class="math-inline">\{clientUser\.name\} \(</span>{clientUser.email})\nNotas: ${schedule.notes || 'Nenhuma'}\nStatus: Confirmado`,
+                start_time: schedule.start_time.toISOString(),
+                end_time: schedule.end_time.toISOString(),
+            });
+        }
+      }
+    }
+  } catch (gcError) {
+    console.error('Error updating Google Calendar event:', gcError.message);
+  }
+
     return schedule.toJSON();
   }
 
@@ -457,6 +512,16 @@ class ScheduleService {
       error.statusCode = 403;
       throw error;
     }
+
+  // **INTEGRAÇÃO COM GOOGLE CALENDAR (NOVO)**
+  try {
+    const employeeUser = await User.findByPk(schedule.employee_id);
+    if (employeeUser && employeeUser.google_refresh_token && schedule.google_calendar_event_id) {
+      await googleCalendarService.deleteCalendarEvent(employeeUser.id, schedule.google_calendar_event_id);
+    }
+  } catch (gcError) {
+    console.error('Error deleting Google Calendar event:', gcError.message);
+  }
 
     await schedule.destroy();
     return true;
