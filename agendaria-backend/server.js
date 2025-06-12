@@ -5,7 +5,10 @@ const db = require('./src/models');
 const authRoutes = require('./src/routes/authRoutes');
 const companyRoutes = require('./src/routes/companyRoutes');
 const serviceRoutes = require('./src/routes/serviceRoutes');
-const companyEmployeeRoutes = require('./src/routes/companyEmployeeRoutes'); // Importa as novas rotas
+const companyEmployeeRoutes = require('./src/routes/companyEmployeeRoutes');
+const employeeServiceRoutes = require('./src/routes/employeeServiceRoutes');
+const employeeAvailabilityRoutes = require('./src/routes/employeeAvailabilityRoutes');
+const scheduleRoutes = require('./src/routes/scheduleRoutes'); // Importa as novas rotas
 const authenticatePlugin = require('./src/plugins/authenticate');
 const authorizePlugin = require('./src/plugins/authorize');
 
@@ -18,42 +21,12 @@ fastify.after(() => {
   fastify.register(authRoutes, { prefix: '/api' });
   fastify.register(companyRoutes, { prefix: '/api' });
   fastify.register(serviceRoutes, { prefix: '/api' });
-  fastify.register(companyEmployeeRoutes, { prefix: '/api' }); // Registra as rotas de CompanyEmployee
+  fastify.register(companyEmployeeRoutes, { prefix: '/api' });
+  fastify.register(employeeServiceRoutes, { prefix: '/api' });
+  fastify.register(employeeAvailabilityRoutes, { prefix: '/api' });
+  fastify.register(scheduleRoutes, { prefix: '/api' }); // Registra as rotas de Schedule
 
-  // ... (manter as rotas de teste /api/protected, /api/admin-dashboard, /api/employee-agenda se desejar)
-  fastify.get('/api/protected', { onRequest: [fastify.authenticate] }, async (request, reply) => {
-    return {
-      message: 'You accessed a protected route!',
-      userId: request.user.userId,
-      userRole: request.user.role
-    };
-  });
-
-  fastify.get('/api/admin-dashboard', {
-    onRequest: [
-      fastify.authenticate,
-      fastify.authorize(['admin'])
-    ]
-  }, async (request, reply) => {
-    return {
-      message: 'Welcome to the admin dashboard!',
-      userId: request.user.userId,
-      userRole: request.user.role
-    };
-  });
-
-  fastify.get('/api/employee-agenda', {
-    onRequest: [
-      fastify.authenticate,
-      fastify.authorize(['admin', 'employee'])
-    ]
-  }, async (request, reply) => {
-    return {
-      message: 'This is the employee agenda!',
-      userId: request.user.userId,
-      userRole: request.user.role
-    };
-  });
+  // ... (manter as rotas de teste se desejar)
 });
 
 fastify.get('/', async (request, reply) => {
